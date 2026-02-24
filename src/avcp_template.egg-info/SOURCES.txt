@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+src/avcp_template/__init__.py
+src/avcp_template.egg-info/PKG-INFO
+src/avcp_template.egg-info/SOURCES.txt
+src/avcp_template.egg-info/dependency_links.txt
+src/avcp_template.egg-info/requires.txt
+src/avcp_template.egg-info/top_level.txt
+src/avcp_template/io/__init__.py
+src/avcp_template/io/bridge.py
+src/avcp_template/utils/__init__.py
+src/avcp_template/utils/logging.py
+src/avcp_template/validation/__init__.py
+src/avcp_template/validation/contracts.py
+tests/test_bridge.py
+tests/test_readme_gen.py
+tests/test_update_changelog.py

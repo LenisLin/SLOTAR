@@ -1,0 +1,18 @@
+name: slotar
+title: SLOTAR
+one_liner: Selection-aware Longitudinal Optimal Transport for Attribution & Remapping in multi-ROI spatial omics.
+domain: Computational Biology / Spatial Omics
+stage: Data / Pipeline / Method Development
+owner: LenisLin
+license: MIT
+entrypoints:
+  - python -m pip install -e ".[dev]"
+  - pytest -q
+  - python scripts/dev/generate_readme.py --check
+datasets:
+  - Gastric Cancer IMC Longitudinal Cohort (pre/post, multi-ROI)
+outputs:
+  - data/interim_viz/*.parquet
+  - data/interim_viz/*.csv
+  - data/interim_viz/*_meta.json
+components: []
