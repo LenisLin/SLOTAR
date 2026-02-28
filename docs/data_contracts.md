@@ -43,6 +43,10 @@ Columns: `source_proto`, `target_proto`, `mass`, `cost`, `event_type` ('retentio
 - `UQ_mode`: string, enum `["roi_bootstrap", "grid_block_frozen", "moving_block_optional"]`.
 - `area_mode`: string, enum `["mask", "nominal"]`.
 - `eps_schedule_id`: string or list, the exact annealing schedule used for Sinkhorn.
+- `delta_mode`: string, defines density term adaptation (e.g., `"const"`, `"spot_density"`).
+- `p_mode`: string, defines composition term adaptation (e.g., `"zero"`, `"soft_comp"`).
+- `slide_match`: string, enum `["yes", "no", "unknown"]`, mandatory for cross-organ ST pairs.
+- `drift_mode`: string, enum `["standard", "unavailable"]`, dictates if drift vector can be reliably estimated.
 
 ### 2. Patient-Group Output Object $(p, g)$
 - **Scale**:

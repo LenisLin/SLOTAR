@@ -28,3 +28,12 @@
 - **Inputs**: Subset of `adata` corresponding to a single ROI.
 - **Outputs**: Dictionary of confidence intervals and event frequencies.
 - **Constraints**: Cannot recompute kNN or prototypes. Only samples cell indices based on adaptive $G \times G$ blocks. Drops blocks with `< n_min` cells.
+
+### ST Modality Adaptation (Visium)
+- **Inputs**: ST embedding (e.g., PCA on HVGs).
+- **Adaptation**: 
+  - $\mathbf{m}_c$: PCA vector of the spot.
+  - $\bar{\mathbf{m}}_c$: kNN mean PCA vector ($k=20$).
+  - $\delta_c$: Treated as constant (`delta_mode="const"`).
+  - $\mathbf{p}_c$: Zero vector (`p_mode="zero"`) by default.
+- **Constraints**: Enforces physical mapping without unsupported biological proxy claims.
