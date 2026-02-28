@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "avcp-template"
+name = "slotar"
 version = "0.1.0"
-description = "AVCP template repository (prompts + docs + code-enforced tooling)"
+description = "Selection-aware Longitudinal Optimal Transport for Attribution & Remapping"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -13,6 +13,11 @@ dependencies = [
   "pyarrow>=12.0",
   "pyyaml>=6.0",
   "tqdm>=4.0",
+  "numpy>=1.22.0",
+  "scipy>=1.8.0",
+  "scikit-learn>=1.0.0",
+  "anndata>=0.8.0",
+  "POT>=0.9.0"  # Python Optimal Transport library
 ]
 
 [project.optional-dependencies]

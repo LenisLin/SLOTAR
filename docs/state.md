@@ -1,7 +1,7 @@
 # Project State
 
 - Stage: Pipeline / Method Development
-- Current Sprint Goal: Implement and validate SLOTAR V1.5 Module 1 (Data Representation & Feature Engineering using AnnData).
+- Current Sprint Goal: Current Sprint Goal: Implement SLOTAR V1.6 Module 1 (Representation Layer: kNN, block-wise robust scaling, AnnData generation) strictly adhering to config.yaml and data_contracts.md.
 - Non-Goals: Deep clinical interpretation or biomarker discovery (deferred until the mathematical pipeline is strictly validated).
 - Active Tasks: 
   - Initialize AVCP repository skeleton and push to remote.

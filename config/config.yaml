@@ -1,2 +1,85 @@
 paths:
   interim_viz_dir: data/interim_viz
+
+slotar_params:
+  # Representation & Dictionary
+  k_neighbors: 30
+  n_bal: 1000
+  K_prototypes: 100
+  random_seed: 42
+  
+  # Active Set & Numerical Floors
+  n_min_proto: 2           # Semantic pruning: min counts across pre+post
+  eta_floor: 1.0e-12       # Pure numerical floor to avoid log(0)
+  
+  # UOT Engine & EPS Schedule
+  eps_schedule: [10.0, 5.0, 2.5, 1.25, 0.625, 0.3125, 0.15625]
+  max_iter: 1000
+  tol: 1.0e-5
+  clamp_range: [-50, 50]
+  
+  # Lambda & Tau Calibration
+  lambda_grid: [0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0]
+  alpha_target: 0.05
+  tau_q: 0.25              # Base quantile for baseline cost distribution
+  
+  # Batch Drift
+  drift_thr: 0.85
+
+benchmark_A:
+  # Overrides for Benchmark A specifically
+  k_neighbors: 20
+  K_prototypes: 25
+  area_mode: "nominal"
+  
+  # Arm Settings
+  arm1_m_rois: [1, 2]
+  arm2_k_bias: [1, 2, 3]
+  arm3_coverage_grids: [0.8, 0.4, 0.2, 0.1]
+  arm4_drift_offsets: [0.2, 0.5, 1.0]
+  
+  # Statistical Settings
+  n_rep: 200
+  alpha_target: 0.15
+  tau_q: 0.25
+
+benchmark_B:
+  # Model constraints
+  k_neighbors: 20
+  K_prototypes_main: 25
+  K_prototypes_sensitivity: 50
+  
+  # Structural mappings
+  transitions:
+    - ["baseline", "on-treatment"]
+    
+  macro_compartment_mapping:
+    tumor: ["cancer", "tumor"]
+    stroma: ["stroma", "ecm"]
+    interface: ["border", "interface"]
+    
+  # Inference settings
+  use_ivw_sensitivity: true
+  drift_action: "flag_only"
+
+benchmark_C:
+  # Cohort definitions
+  cohorts:
+    - "Main"
+    - "E1"
+    - "E2"
+  
+  # Global parameters (aligned with A and B)
+  k_neighbors: 20
+  K_prototypes_main: 25
+  n_min_roi: 200
+  alpha_target: 0.15
+  tau_q: 0.25
+  
+  # Compartment definitions
+  compartments: ["CT", "PT", "RTB", "AB"]
+  primary_micro_compartment: "PT"
+  
+  # Inference settings
+  run_UOT_on_external: false
+  drift_action: "flag_only"
