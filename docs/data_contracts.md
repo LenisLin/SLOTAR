@@ -1,40 +1,56 @@
-# Data Contracts
+# Data Contracts (SLOTAR V1.6)
 
 ## 1. Input AnnData Object (`adata`)
-The primary data structure is an `AnnData` object encompassing all cells across all patients, timepoints, and ROIs.
+The primary data structure is an `AnnData` object encompassing all cells.
 
 ### 1.1 `adata.obs` (Cell Metadata)
-Must contain the following columns (no missing values allowed for structural keys):
-- `patient_id` (str): Unique identifier for the patient.
-- `timepoint` (category/int): strictly `0` (pre) or `1` (post).
-- `roi_id` (str): Unique identifier for the ROI.
-- `compartment` (str, optional): User-provided spatial label (e.g., 'CT', 'PT', 'RTB').
-- `cell_type` (str): Coarse identity (e.g., 'tumor', 'immune', 'stroma') derived from prior gating/clustering.
-- `proto_id` (int, generated): Global prototype assignment $a(c) \in [1, K]$.
-- `block_id` (str, generated): For single-ROI bootstrap adaptive grid mapping.
+- `patient_id` (str), `timepoint` (int: 0/1), `roi_id` (str), `compartment` (str).
+- `cell_type` (str): Coarse identity (e_c).
+- `proto_id` (int, generated): Global prototype assignment $a(c)$.
+- `block_id` (str, generated): For frozen-feature block bootstrap.
 
-### 1.2 `adata.X` (Expression)
-- Contains normalized (e.g., arcsinh transformed) marker expression matrix. Shape: `(n_cells, n_markers)`.
-
-### 1.3 `adata.obsm` (Multidimensional Annotations)
-- `spatial` (float array): Physical coordinates $(x, y)$. Shape: `(n_cells, 2)`.
-- `community_features` (float array): The robustly scaled vector $\tilde{u}_c = [\mathbf{p}_c, \bar{\mathbf{m}}_c, \mathbf{m}_c, \delta_c]$. Shape: `(n_cells, d_u)`.
-
-### 1.4 `adata.uns` (Unstructured Metadata)
-- `roi_areas` (dict): Mapping of `roi_id` -> valid tissue area in $mm^2$.
-- `global_cost_scale` (float): The median pairwise distance $s_C$.
-- `lambda_dens` (dict): Calibrated $\lambda$ for density per group.
-- `lambda_shape` (dict): Calibrated $\lambda$ for shape per group.
-- `prototype_centers` (float array): Coordinates of $\mathbf{z}_k$. Shape: `(K, d_u)`.
+### 1.2 `adata.obsm` & `adata.uns`
+- `.obsm['spatial']`: Coordinates $(x, y)$.
+- `.obsm['community_features']`: Robustly scaled vector $\tilde{u}_c$.
+- `.uns['scaler_params']`: Median/MAD parameters used for $\tilde{u}_c$ (Required for drift alignment).
+- `.uns['roi_areas']`: Mapping of `roi_id` -> effective area in $mm^2$.
+- `.uns['s_C']`: Global static cost scale.
 
 ## 2. Output Artifact Contracts
-Output files must be generated via `src/avcp_template/io/bridge.py::save_for_r()` to enforce meta sidecars.
+Generated via `src/avcp_template/io/bridge.py::save_for_r()`.
 
 ### 2.1 Metrics Table (`metrics_<level>.csv`)
-Primary Key: `patient_group_id` (e.g., "P01_CT")
-Columns: `patient_id`, `group_id`, `scale_ratio`, `T`, `D`, `B`, `M`, `R`, `tau`.
-Must have `_meta.json` describing provenance.
+Primary Key: `patient_group_id`
+Core Metrics: `S0`, `S1`, `scale_ratio`, `T`, `D_pos`, `B_pos`, `d_rel`, `b_rel`, `M`, `R`, `tau`.
+Audit Fields: `A_pre`, `A_post`, `area_mode`, `mass_pruned_ratio`, `tau_mode`.
 
 ### 2.2 Events Table (`events_<level>.parquet`)
-Primary Key: `event_id` (e.g., "P01_CT_rem_5_12")
-Columns: `patient_id`, `group_id`, `source_proto`, `target_proto`, `mass`, `cost`, `event_type` ('retention', 'remodeling', 'creation', 'destruction'), `drift_aligned` (bool), `reproducibility` (float).
+Primary Key: `event_id`
+Columns: `source_proto`, `target_proto`, `mass`, `cost`, `event_type` ('retention', 'remodeling', 'creation', 'destruction'), `drift_aligned` (bool), `reproducibility` (float).
+
+# Data Contracts
+
+## SLOTAR V1.6 Output Specifications
+
+### 1. Global Audit Fields (Mandatory for reproducibility)
+- `lambda_dens`: dict, keys are groups $g$, values are float.
+- `lambda_shape`: dict, keys are groups $g$, values are float.
+- `tau_g`: dict, keys are groups $g$, values are float (baseline calibrated threshold).
+- `s_C`: float, global static cost scaling factor.
+- `eta_floor`: float, numerical floor for log-domain stability (e.g., 1e-12).
+- `n_min_proto`: int, semantic active set minimum count threshold.
+- `mass_pruned_ratio`: float, ratio of mass dropped during active set pruning. Triggers warning if > 0.5%.
+- `UQ_mode`: string, enum `["roi_bootstrap", "grid_block_frozen", "moving_block_optional"]`.
+- `area_mode`: string, enum `["mask", "nominal"]`.
+- `eps_schedule_id`: string or list, the exact annealing schedule used for Sinkhorn.
+
+### 2. Patient-Group Output Object $(p, g)$
+- **Scale**:
+  - `S0`, `S1`: float, total cells / total mm² for pre and post.
+  - `scale_ratio`: float, $S1 / S0$.
+  - `audit_pre`, `audit_post`: dict, containing `A` (effective area), `n_roi`, `n_cells`.
+- **Density-level & Shape-level UOT**:
+  - `metrics`: dict containing `T`, `D_pos`, `B_pos`, `d_rel`, `b_rel`, `M`, `R`, `tau`.
+  - `events`: Event extraction table tracking retention/remodeling/creation/destruction.
+- **Batch Drift Risk**:
+  - `drift_aligned`: boolean flag attached to remodeling edges if cosine similarity with batch drift vector > 0.85 (computed in equivalent scaled subspace).

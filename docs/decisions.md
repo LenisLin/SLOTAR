@@ -17,3 +17,15 @@
 
 ### V1.5 Algorithm Pseudocode (Locked Blueprint)
 *(Refer to the agreed Proposal V1.5 for the full specifications of Algorithm 1: End-to-end, Algorithm 2: Group-wise calibration, and Algorithm 3: SolveUOT + Decompose)*
+
+## D002 — SLOTAR V1.6 Core Algorithm Architecture Upgrade
+- Context: V1.5 metrics (L1 distance, absolute density, arbitrary tau) lacked strict physical units, tightly bounded unmatched mass extraction, and robust single-ROI topology preservation.
+- Decision: Upgrade to V1.6 mathematical engine.
+  1. **Area-weighted aggregation**: Use $\frac{\sum N}{\sum Area}$ for density to ensure strict cells/mm² physics semantics.
+  2. **Positive-part metrics**: Use $(x-m)_+$ for Creation/Destruction to accurately isolate unmatched mass under UOT KL relaxation.
+  3. **Group-wise calibration**: Implement baseline calibration for $\tau_g$ (Retention threshold) using pre ROI-ROI pairs within the same group.
+  4. **Active set separation**: Decouple semantic pruning (tracked explicitly by `mass_pruned_ratio`) from numerical stability limits (`eta_floor`).
+  5. **Frozen-feature Bootstrap**: Enforce single-ROI adaptive grid block bootstrap with frozen kNN/prototypes to prevent topological tearing.
+- Alternatives: L1 metrics (rejected due to confounding marginal relaxation with creation), moving-block bootstrap (kept as secondary option, too complex for default).
+- Consequences: Output data contracts must be strictly expanded to include mandatory audit fields (`mass_pruned_ratio`, `eps_schedule_id`, etc.) to guarantee traceability and reproducibility.
+- Review Trigger: Failure of log-domain Sinkhorn convergence or unacceptable `mass_pruned_ratio` (>0.5%) triggering sensitivity degradation.
