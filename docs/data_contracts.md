@@ -23,6 +23,11 @@ Generated via `src/avcp_template/io/bridge.py::save_for_r()`.
 Primary Key: `patient_group_id`
 Core Metrics: `S0`, `S1`, `scale_ratio`, `T`, `D_pos`, `B_pos`, `d_rel`, `b_rel`, `M`, `R`, `tau`.
 Audit Fields: `A_pre`, `A_post`, `area_mode`, `mass_pruned_ratio`, `tau_mode`.
+**Bypass Contract**: 
+- If `uot_status != "ok"`:
+  - All UOT metrics (`T`, `D_pos`, `B_pos`, `d_rel`, `b_rel`, `M`, `R`, `tau`) MUST be written as explicit `NaN` (which translates to `NA` in R).
+  - The corresponding `events` table partition MUST be empty.
+  - If bypassed due to `empty_support_after_prune`, `mass_pruned_ratio` must be set to `1.0`.
 
 ### 2.2 Events Table (`events_<level>.parquet`)
 Primary Key: `event_id`
@@ -47,6 +52,8 @@ Columns: `source_proto`, `target_proto`, `mass`, `cost`, `event_type` ('retentio
 - `p_mode`: string, defines composition term adaptation (e.g., `"zero"`, `"soft_comp"`).
 - `slide_match`: string, enum `["yes", "no", "unknown"]`, mandatory for cross-organ ST pairs.
 - `drift_mode`: string, enum `["standard", "unavailable"]`, dictates if drift vector can be reliably estimated.
+- `uot_status`: string, enum `["ok", "bypassed_structural_zero", "bypassed_empty_support", "error"]`. Tracks solver bypass status.
+- `bypass_reason`: string, enum `["S0_zero", "S1_zero", "empty_support_after_prune", null]`.
 
 ### 2. Patient-Group Output Object $(p, g)$
 - **Scale**:

@@ -26,3 +26,7 @@
 ## 5. TBD Isolations (Guardrails)
 - **`lambda_cross`**: Restricted to Tier 3 exploratory remapping.
 - **IVW**: Restricted to supplementary sensitivity analysis.
+
+### Structural Zero Engineering Constraint
+- **Implementation Bypass**: The pipeline MUST pre-calculate existence $I_{p,t,g} = \mathbf{1}\{n\_cells > 0\}$. The implementation MUST NOT call `solve_uot` when $I_{pre}=0$ or $I_{post}=0$. 
+- It must explicitly catch these cases, write `uot_status = "bypassed_structural_zero"`, specify `bypass_reason`, and fill micro-metrics with `NaN` to avoid silent failures and math domain errors.

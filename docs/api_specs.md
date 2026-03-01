@@ -17,10 +17,15 @@
 - **Outputs**: Returns two dictionaries `{group: lambda}` for density and shape levels.
 - **Constraints**: Uses only `timepoint == 0` ROIs.
 
-### `solve_uot(a: np.ndarray, b: np.ndarray, C: np.ndarray, lam: float, eps_init: float = 10.0, eps_target: float = 0.1) -> Tuple[np.ndarray, dict]`
-- **Inputs**: Non-negative mass vectors `a`, `b`, scaled cost matrix `C`.
-- **Outputs**: Coupling matrix $\Pi^*$ and metrics dict (T, B, D, M, R).
-- **Constraints**: Must enforce $\varepsilon$-scaling and log-domain computation. Inputs $a, b$ are pruned for support $> \eta$.
+### `solve_uot(a: np.ndarray, b: np.ndarray, C: np.ndarray, lam: float, eps_schedule: list, ...) -> Tuple[np.ndarray, dict]`
+- **Inputs**: Non-negative mass vectors `a`, `b`, scaled cost matrix `C`. (Note: $\alpha$ is a calibration target tolerance and MUST NOT be passed to this solver).
+- **Preconditions (Strict)**: 
+  - `a.sum() > 0` and `b.sum() > 0`.
+  - Active support size after semantic pruning must be $> 0$.
+- **Raises (Fail-fast)**: 
+  - Raises `ValueError` explicitly with codes `ERR_UOT_EMPTY_MASS_PRE`, `ERR_UOT_EMPTY_MASS_POST`, or `ERR_UOT_EMPTY_SUPPORT` if preconditions fail. The solver must NEVER silently return `NaN` or zero matrices on invalid inputs.
+- **Outputs**: Coupling matrix $\Pi^*$ and metrics dict (T, B_pos, D_pos, d_rel, b_rel, M, R, tau).
+- **Constraints**: Pipeline/Wrapper layer is responsible for intercepting structural zeros ($I_{p,t,g}=0$) prior to calling this function.
 
 ## Module 3: Uncertainty Quantification (`slotar.uq`)
 
