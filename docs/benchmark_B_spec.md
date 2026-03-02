@@ -40,3 +40,5 @@ To establish the clinical utility and biological validity of the UOT metrics aga
 ### 6.4 Robustness to Spatial Undersampling (IVW Evaluation)
 - **Hypothesis**: Down-weighting single-ROI samples via UQ-derived variances (Inverse Variance Weighting) yields a more robust and statistically significant clinical contrast than unweighted naive aggregation.
 - **Evidence**: Comparison of $p$-values and effect sizes between standard LMM and IVW-LMM.
+
+Adheres strictly to the structural zero bypass mechanism and uot_status data contract defined in V1.6 for missing compartments or shape-level dropouts.

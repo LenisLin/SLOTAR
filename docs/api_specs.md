@@ -42,3 +42,20 @@
   - $\delta_c$: Treated as constant (`delta_mode="const"`).
   - $\mathbf{p}_c$: Zero vector (`p_mode="zero"`) by default.
 - **Constraints**: Enforces physical mapping without unsupported biological proxy claims.
+
+## Module 4: Domain-Agnostic Utilities (`slotar.utils`)
+
+### `build_grouping(adata, group_key: Optional[str] = None) -> np.ndarray`
+- **Inputs**: `group_key` (column name in `adata.obs`).
+- **Logic**: If `group_key` is None or not provided, MUST fallback to assigning all observations to a single group: `g="all"`. Implicit ROI-state clustering is strictly forbidden. 
+- **Outputs**: Group assignments array.
+
+### `compute_active_mask(mass_source: np.ndarray, mass_target: np.ndarray, n_min_proto: float) -> Tuple[np.ndarray, float]`
+- **Inputs**: Source and target mass vectors (agnostic to temporal pre/post semantics).
+- **Logic**: Mathematical pure mask `active_mask = (mass_source + mass_target >= n_min_proto)`. 
+- **Outputs**: `active_mask` (boolean array) and `mass_pruned_ratio` (float).
+
+### `flag_drift(events: dict, z: np.ndarray, drift_vector: Optional[np.ndarray] = None, thr: float = 0.85) -> dict`
+- **Inputs**: `drift_vector` MUST be computed by the upstream task pipeline and passed explicitly. The library performs NO automatic drift estimation.
+- **Logic**: If `drift_vector` is None, skips cosine computation.
+- **Outputs**: Returns events with `drift_aligned` flags. If `drift_vector` is None, sets `drift_aligned = null` and signals unavailable mode.

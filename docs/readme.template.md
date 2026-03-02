@@ -257,3 +257,8 @@ python scripts/dev/update_changelog.py --entry "chore(docs): update guide"
 
 - Pinned system prompt: `prompts/AVCP_SYSTEM_PROMPT_MIN.md`
 - Guidelines and gates: `docs/avcp_guidelines.md`
+
+## Repository Architecture: Library vs. Tasks
+This repository enforces a strict boundary between the algorithmic engine and clinical/experimental applications:
+1. **`src/slotar/`**: Contains pure, stateless functions for optimal transport, spatial representations, and uncertainty quantification. It knows nothing about "patients", "pCR", or "clinical cohorts".
+2. **`tasks/`**: Contains end-to-end pipelines tailored to specific benchmarks or clinical datasets. Here, domain-specific logic (e.g., Two-part GLMM inference, drift synthesis for Benchmark A, grouping definitions) is orchestrated using the primitives from `src/slotar`.

@@ -44,14 +44,15 @@ Columns: `source_proto`, `target_proto`, `mass`, `cost`, `event_type` ('retentio
 - `s_C`: float, global static cost scaling factor.
 - `eta_floor`: float, numerical floor for log-domain stability (e.g., 1e-12).
 - `n_min_proto`: int, semantic active set minimum count threshold.
-- `mass_pruned_ratio`: float, ratio of mass dropped during active set pruning. Triggers warning if > 0.5%.
+- `mass_pruned_ratio`: float. Defined mathematically as the fraction of (mass_source + mass_target) discarded by n_min_proto.
 - `UQ_mode`: string, enum `["roi_bootstrap", "grid_block_frozen", "moving_block_optional"]`.
 - `area_mode`: string, enum `["mask", "nominal"]`.
+- `group_mode`: string, enum ["all", "roi_state_cluster", "provided"]. Must be "all" if no explicit grouping was requested.
 - `eps_schedule_id`: string or list, the exact annealing schedule used for Sinkhorn.
 - `delta_mode`: string, defines density term adaptation (e.g., `"const"`, `"spot_density"`).
 - `p_mode`: string, defines composition term adaptation (e.g., `"zero"`, `"soft_comp"`).
 - `slide_match`: string, enum `["yes", "no", "unknown"]`, mandatory for cross-organ ST pairs.
-- `drift_mode`: string, enum `["standard", "unavailable"]`, dictates if drift vector can be reliably estimated.
+- `drift_mode`: string, enum ["standard", "unavailable"]. Dictates if the task pipeline successfully injected a drift_vector.
 - `uot_status`: string, enum `["ok", "bypassed_structural_zero", "bypassed_empty_support", "error"]`. Tracks solver bypass status.
 - `bypass_reason`: string, enum `["S0_zero", "S1_zero", "empty_support_after_prune", null]`.
 

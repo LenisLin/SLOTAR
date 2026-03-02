@@ -322,3 +322,5 @@ All baselines share the same dictionary, cost scaling, and active set rules.
 * Pri→LiM is cross-organ; λ is treated as a regularization sensitivity parameter, not a biologically calibrated “truth.”
 * Drift detection may be unavailable; we do not correct for drift.
 * g=all is used to minimize proxy assumptions; optional proxy grouping is labeled as such.
+
+Adheres strictly to the structural zero bypass mechanism and uot_status data contract defined in V1.6 for missing compartments or shape-level dropouts.
