@@ -6,6 +6,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class UOTErrorCode:
     """Canonical error codes for fail-fast UOT input validation."""
+
     code: str
 
 

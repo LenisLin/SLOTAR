@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import pandas as pd
 import yaml
@@ -24,7 +24,7 @@ class DataContractError(ValueError):
     pass
 
 
-def _load_config(config_path: Path) -> Dict[str, Any]:
+def _load_config(config_path: Path) -> dict[str, Any]:
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
     with config_path.open("r", encoding="utf-8") as f:
@@ -32,7 +32,7 @@ def _load_config(config_path: Path) -> Dict[str, Any]:
     return cfg
 
 
-def _resolve_output_dir(cfg: Dict[str, Any], config_path: Path) -> Path:
+def _resolve_output_dir(cfg: dict[str, Any], config_path: Path) -> Path:
     configured = Path(cfg.get("paths", {}).get("interim_viz_dir", "data/interim_viz"))
     if configured.is_absolute():
         return configured
@@ -72,7 +72,7 @@ def save_for_r(
     primary_key: str = "row_id",
     provenance_script: str = "unknown",
     git_commit: str = "unknown",
-) -> Tuple[Path, Path]:
+) -> tuple[Path, Path]:
     """
     Save a DataFrame for R visualization with a required meta sidecar.
 

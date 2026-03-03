@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
-
 import numpy as np
 import pandas as pd
 
@@ -9,9 +7,9 @@ import pandas as pd
 def flag_drift(
     events: pd.DataFrame,
     z: np.ndarray,
-    drift_vector: Optional[np.ndarray] = None,
+    drift_vector: np.ndarray | None = None,
     thr: float = 0.85,
-) -> Tuple[pd.DataFrame, str]:
+) -> tuple[pd.DataFrame, str]:
     """
     Drift risk flagging (consumer-only).
     - If drift_vector is None: drift_mode="unavailable" and drift_aligned set to NA.

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -21,7 +21,8 @@ class UOTSolveConfig:
 
     eps_schedule: e.g., [10.0, 5.0, 2.5, 1.0, 0.5, 0.2, 0.1]
     """
-    eps_schedule: List[float]
+
+    eps_schedule: list[float]
     max_iter: int = 2000
     tol: float = 1e-6
     eta_floor: float = 1e-12
@@ -49,7 +50,7 @@ def solve_uot(
     C: np.ndarray,
     lam: float,
     cfg: UOTSolveConfig,
-) -> Tuple[np.ndarray, Dict[str, float]]:
+) -> tuple[np.ndarray, dict[str, float]]:
     """
     Solve entropic unbalanced OT with KL relaxation using POT.
 
@@ -107,7 +108,7 @@ def solve_uot(
 
     pot_solver = _get_pot_unbalanced_solver()
 
-    PiA: Optional[np.ndarray] = None
+    PiA: np.ndarray | None = None
     for eps in cfg.eps_schedule:
         if eps <= 0:
             raise ValueError("All eps in eps_schedule must be > 0")
@@ -146,9 +147,9 @@ def solve_uot(
 
     # Retention labeling threshold tau (pi-weighted quantile of costs)
     tau = weighted_quantile(values=CA.reshape(-1), weights=PiA.reshape(-1), q=cfg.tau_q)
-    R = float(np.sum(PiA[CA <= tau]) / (T + cfg.eta_floor))
+    R = float(np.sum(PiA[tau >= CA]) / (T + cfg.eta_floor))
 
-    metrics: Dict[str, float] = {
+    metrics: dict[str, float] = {
         "T": T,
         "D_pos": D_pos,
         "B_pos": B_pos,

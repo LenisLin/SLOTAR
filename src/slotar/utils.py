@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
-
 import numpy as np
 
 
-def build_grouping(group_values: Optional[np.ndarray] = None) -> np.ndarray:
+def build_grouping(group_values: np.ndarray | None = None) -> np.ndarray:
     """
     Domain-agnostic grouping fallback.
 
@@ -22,7 +20,7 @@ def compute_active_mask(
     mass_target: np.ndarray,
     n_min_proto: float,
     eta_floor: float = 1e-12,
-) -> Tuple[np.ndarray, float]:
+) -> tuple[np.ndarray, float]:
     """
     Pure mathematical semantic pruning:
         active_mask = (mass_source + mass_target >= n_min_proto)
