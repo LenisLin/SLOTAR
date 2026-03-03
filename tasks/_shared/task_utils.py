@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
 
-def load_yaml(path: str | Path) -> Dict[str, Any]:
+def load_yaml(path: str | Path) -> dict[str, Any]:
     p = Path(path).resolve()
     with p.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
