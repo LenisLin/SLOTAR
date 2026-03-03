@@ -1,0 +1,87 @@
+Metadata-Version: 2.4
+Name: slotar
+Version: 0.1.0
+Summary: Selection-aware Longitudinal Optimal Transport for Attribution & Remapping
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: pandas>=2.0
+Requires-Dist: pyarrow>=12.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: tqdm>=4.0
+Requires-Dist: numpy>=1.22.0
+Requires-Dist: scipy>=1.8.0
+Requires-Dist: scikit-learn>=1.0.0
+Requires-Dist: anndata>=0.8.0
+Requires-Dist: POT>=0.9.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: ruff>=0.5.0; extra == "dev"
+Requires-Dist: mypy>=1.8.0; extra == "dev"
+Requires-Dist: pre-commit>=3.0.0; extra == "dev"
+Requires-Dist: types-PyYAML>=6.0.12; extra == "dev"
+Requires-Dist: pandas-stubs>=2.0.0; extra == "dev"
+Requires-Dist: types-setuptools>=69.0.0; extra == "dev"
+Requires-Dist: jinja2>=3.1.0; extra == "dev"
+
+# SLOTAR
+
+**SLOTAR** = *Selection-aware Longitudinal Optimal Transport for Attribution & Remapping*  
+A contract-first, reproducible framework for multi-ROI spatial omics (IMC / ST) longitudinal or state-transition analysis.
+
+This repository follows AVCP “repo-as-memory” conventions: decisions/specs live in versioned files under `docs/`, not chat context.
+
+---
+
+## Repository Architecture: Library vs Tasks (Hard Boundary)
+
+This repo enforces a strict separation:
+
+1) **`src/slotar/` (library-only)**  
+   Pure, reusable Python package implementing:
+   - representation / prototypes / cost scaling
+   - UOT solver + metrics + events (math engine)
+   - uncertainty quantification primitives (bootstrap)
+   - drift **flagging** (consumer-only; no drift estimation)
+   - I/O helpers (contracts-aware export)
+
+   `src/slotar` knows nothing about “pCR”, “TONIC”, or any benchmark-specific orchestration.
+
+2) **`tasks/` (task-scoped pipelines)**  
+   End-to-end pipelines for each benchmark/case:
+   - data loading / preprocessing
+   - structural-zero bypass logic (Plan B)
+   - drift vector construction or injection (if any)
+   - cohort-level inference (two-part models, IVW) and figure generation
+
+---
+
+## Key AVCP Contracts (must read before coding)
+Start each session by reading:
+- `docs/state.md`
+- `docs/constraints.md`
+- `docs/decisions.md`
+- `docs/api_specs.md`
+- `docs/data_contracts.md`
+- `docs/avcp_guidelines.md`
+
+---
+
+## Recommended Commands
+
+```bash
+python -m pip install -e ".[dev]"
+ruff check .
+ruff format --check .
+mypy .
+pytest -q
+````
+
+---
+
+## Notes
+
+* Structural zeros are handled by **Plan B**:
+
+  * `src/slotar` solver is **fail-fast** (raises `ValueError` on empty mass/support).
+  * `tasks/*` pipelines are responsible for bypass and writing explicit NA + audit fields.
+* Drift is **risk flagging only**. Drift vector estimation is never performed inside the library.
