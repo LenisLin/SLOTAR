@@ -6,8 +6,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from avcp_template.io.bridge import save_for_r
-from avcp_template.validation.contracts import DataContractError
+from slotar.io.bridge import DataContractError, save_for_r
 
 
 def test_save_for_r_writes_data_and_meta(tmp_path: Path) -> None:

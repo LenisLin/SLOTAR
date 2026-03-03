@@ -17,7 +17,7 @@ dependencies = [
   "scipy>=1.8.0",
   "scikit-learn>=1.0.0",
   "anndata>=0.8.0",
-  "POT>=0.9.0"  # Python Optimal Transport library
+  "POT>=0.9.0", # Python Optimal Transport
 ]
 
 [project.optional-dependencies]
@@ -33,7 +33,7 @@ dev = [
 ]
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
