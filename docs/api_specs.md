@@ -9,7 +9,7 @@
 - **Constraints**: Uses exact kNN. Computes density $\delta_c = k / (\pi \cdot r_k^2)$.
 
 ### `learn_global_prototypes(adata: AnnData, n_bal: int, K: int) -> None`
-- **Side Effects**: Computes balanced sample $\mathcal{U}_{bal}$, runs KMeans, assigns `proto_id` to all cells in `adata.obs`. Computes and stores $s_C$ in `adata.uns['global_cost_scale']`.
+- **Side Effects**: Computes balanced sample $\mathcal{U}_{bal}$, runs KMeans, assigns `proto_id` to all cells in `adata.obs`. Computes and stores $s_C$ in adata.uns['s_C'].
 
 ## Module 2: UOT Engine & Calibration (`slotar.uot`)
 
@@ -24,7 +24,7 @@
   - `lambda_pl`: Array of shape `[N]` containing the regularization parameter for each batch item.
   - `kernels`: Precomputed log-domain kernels for the $\varepsilon$-scaling schedule.
 - **Preconditions (Strict)**: 
-  - Handled via active masks. Structural zeros MUST be bypassed by the caller before entering the solver, OR the solver must return specific error codes in the status array without crashing the entire batch.
+  - Handled via active masks. Programmer-level errors (shape/type mismatch, negative inputs) MUST raise DataContractError. Data-level degeneracies (empty mass/support) MUST NOT crash the batch, but instead return specific error codes in the status array.
 - **Outputs**: 
   - `metrics_dict`: Dictionary of batched tensors for `T`, `B_pos`, `D_pos`, `d_rel`, `b_rel`, `M`, `R`, `tau`.
   - `status_array`: Array of shape `[N]` with values `"ok"`, `"ERR_UOT_EMPTY_MASS"`, or `"ERR_UOT_EMPTY_SUPPORT"`.
