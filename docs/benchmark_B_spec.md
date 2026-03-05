@@ -18,10 +18,12 @@
 - **Rule**: $\Delta_{batch}$ must be derived from intra-timepoint batch contrasts to isolate treatment effects.
 - **Usage**: Used purely for risk flagging (`drift-aligned = True`) and sensitivity analysis. No silent correction or overriding of matched mass.
 
-## 5. Cohort-Level Inference
+## 5. Cohort-Level Inference (V2.0 Hurdle + ME Model)
 - **Macro-Scale Conservation**: Report $\Delta \log S_{tumor}$ and $\Delta \log S_{stroma}$ to capture inter-compartment mass shifts.
-- **Micro-Scale Models**: Two-part models (Logistic Mixed Model for existence, Linear Mixed Model for continuous metrics).
-- **Sensitivity**: Inverse Variance Weighting (IVW) regression utilizing UQ variances.
+- **Micro-Scale Models**: Hurdle + Measurement Error Joint Model.
+  - **Zero-Component (Hurdle)**: Logistic regression on true biological clearances ($I_i$). Engineering zeros must be strictly filtered.
+  - **Positive-Component (Likelihood)**: Continuous metric evaluation incorporating the log-scale empirical measurement error $s_i^2$ derived from the adaptive grid block bootstrap ($e_i \sim \mathcal{N}(0, \phi^2 + s_i^2)$).
+- **Sensitivity**: Evaluation of parameter identifiability and robustness under varying numerical stabilizer bounds ($\delta$).
 
 ## 6. Biological & Clinical Concordance (Silver Standard Validation)
 To establish the clinical utility and biological validity of the UOT metrics against the original TONIC findings, the following criteria must be evaluated:
@@ -37,8 +39,8 @@ To establish the clinical utility and biological validity of the UOT metrics aga
 - **Hypothesis**: The highest-magnitude events (Top Remodeling Edges, Top Creation Prototypes) will physically colocalize at the tumor-stroma border. 
 - **Evidence**: Projection of event masks onto physical coordinates $(x,y)$ to unsupervisedly mirror the original study's finding that immune infiltration at the tumor boundary dictates clinical response.
 
-### 6.4 Robustness to Spatial Undersampling (IVW Evaluation)
-- **Hypothesis**: Down-weighting single-ROI samples via UQ-derived variances (Inverse Variance Weighting) yields a more robust and statistically significant clinical contrast than unweighted naive aggregation.
-- **Evidence**: Comparison of $p$-values and effect sizes between standard LMM and IVW-LMM.
+### 6.4 Robustness to Spatial Undersampling (Measurement Error Evaluation)
+- **Hypothesis**: Incorporating single-ROI resampling variance directly into the likelihood as a measurement error ($s_i^2$) provides a more robust and statistically reliable clinical contrast than unweighted naive aggregation or heuristic IVW truncation.
+- **Evidence**: Comparison of $p$-values, effect sizes, and residual homoscedasticity between a naive LMM (ignoring spatial uncertainty) and the Hurdle + Measurement Error joint model.
 
 Adheres strictly to the structural zero bypass mechanism and uot_status data contract defined in V1.6 for missing compartments or shape-level dropouts.

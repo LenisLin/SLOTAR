@@ -26,17 +26,24 @@ Core Metrics:
 - `S0`, `S1`, `scale_ratio`
 - `T`, `D_pos`, `B_pos`, `d_rel`, `b_rel`, `M`, `R`, `tau`
 
+UQ & Measurement Error Fields (V2.0):
+- `s2_log_error`: Empirical variance of log-transformed bootstrap replicates ($s_i^2$).
+- `s2_lower_bound_applied`: Boolean indicating if the numerical protection floor was triggered.
+
 Audit Fields:
 - `A_pre`, `A_post`, `area_mode`, `mass_pruned_ratio`, `tau_mode`
 - `uot_status`, `bypass_reason`
 - `drift_mode`, `slide_match`
 - `UQ_mode`, `n_blocks_valid`
 
-**Bypass Contract (Plan B)**:
+**Bypass Contract (Plan B) & Zero Stratification**:
 - If `uot_status != "ok"`:
-  - All UOT metrics (`T`, `D_pos`, `B_pos`, `d_rel`, `b_rel`, `M`, `R`, `tau`) MUST be explicit `NaN` (-> `NA` in R).
+  - All micro UOT metrics (`T`, `D_pos`, `B_pos`, `d_rel`, `b_rel`, `M`, `R`, `tau`) MUST be explicit `NaN` (-> `NA` in R).
   - The corresponding `events` partition MUST be empty.
-- If bypassed due to `empty_support_after_prune`, `mass_pruned_ratio` must be set to `1.0`.
+- **Hurdle Model Eligibility**:
+  - `bypass_reason == "S1_zero"` (with valid S0): Qualifies as a "True Zero" for the hurdle zero-component.
+  - `bypass_reason == "empty_support_after_prune"` or S0=0: MUST be treated strictly as Missing Data (`NaN`), prohibited from zero-component inference.
+  - If bypassed due to `empty_support_after_prune`, `mass_pruned_ratio` must be set to `1.0`.
 
 ### 2.2 Events Table (`events_.parquet`)
 Primary Key: `event_id`
@@ -55,3 +62,5 @@ Columns:
 - `drift_mode` ∈ {"provided", "unavailable"}
 - `uot_status` ∈ {"ok","bypassed_structural_zero","bypassed_empty_support","error"}
 - `bypass_reason` ∈ {"S0_zero","S1_zero","empty_support_after_prune", null}
+- `delta_log_stabilizer` (float): The $\delta$ constant used for log-transforming zero-bounded UQ replicates.
+- `s2_lower_bound` (float): The absolute minimum floor allowed for $s_i^2$ measurement error.

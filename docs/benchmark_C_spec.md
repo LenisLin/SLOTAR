@@ -19,13 +19,13 @@
 
 ## 4. Endpoints Definition
 - **A1 Macro Scale**: $S^{macro}_{p,t,g} = \frac{n\_cells(p,t,g)}{Area(p,t,g)}$.
-- **A1-CT (Clearance)**: Logistic on $I^{CT}_{post}$, conditional linear on $\log S^{macro}_{post, CT}$.
-- **A1-RTB (Bed Formation)**: Logistic on $I^{RTB}_{post}$, conditional linear on $\log S^{macro}_{post, RTB}$.
+- **A1-CT (Clearance)**: Evaluated via the zero-component (Hurdle) on $I^{CT}_{post}$, and positive-component measurement error model on $\log S^{macro}_{post, CT}$.
+- **A1-RTB (Bed Formation)**: Evaluated via the zero-component (Hurdle) on $I^{RTB}_{post}$, and positive-component measurement error model on $\log S^{macro}_{post, RTB}$.
 - **TBCI (Tumor-to-Bed Clearance Index)**: $S^{macro}_{post,CT} / (S^{macro}_{post,CT} + S^{macro}_{post,RTB})$.
 
 ## 5. TBD Isolations (Guardrails)
 - **`lambda_cross`**: Restricted to Tier 3 exploratory remapping.
-- **IVW**: Restricted to supplementary sensitivity analysis.
+- **IVW**: Strictly deprecated. All spatial uncertainty must be handled via the Hurdle + Measurement Error framework (D006).
 
 ### Structural Zero Engineering Constraint
 - **Implementation Bypass**: The pipeline MUST pre-calculate existence $I_{p,t,g} = \mathbf{1}\{n\_cells > 0\}$. The implementation MUST NOT call `solve_uot` when $I_{pre}=0$ or $I_{post}=0$. 

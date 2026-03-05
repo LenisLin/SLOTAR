@@ -29,3 +29,23 @@
 - Alternatives: L1 metrics (rejected due to confounding marginal relaxation with creation), moving-block bootstrap (kept as secondary option, too complex for default).
 - Consequences: Output data contracts must be strictly expanded to include mandatory audit fields (`mass_pruned_ratio`, `eps_schedule_id`, etc.) to guarantee traceability and reproducibility.
 - Review Trigger: Failure of log-domain Sinkhorn convergence or unacceptable `mass_pruned_ratio` (>0.5%) triggering sensitivity degradation.
+
+## D004 — Hard Boundary Isolation (Library vs. Tasks)
+- **Context**: To maintain the pure mathematical rigor of the UOT solver and prevent overfitting to specific benchmark cohorts, the core engine and clinical inferences must be physically separated.
+- **Decision**: Enforce a strict physical boundary. `src/slotar/` operates strictly as a domain-agnostic mathematical library (UOT, representation, UQ primitives). All clinical logic, cohort-level inferences, explicit loopings, and biological evaluation (drift vector estimation) are strictly confined to the `tasks/` directory.
+- **Consequences**: Any benchmark-specific logic bleeding into `src/slotar/` will fail CI/CD. The core library takes representations as prerequisites and holds no knowledge of clinical metadata.
+
+## D005 — Batched Unbalanced Optimal Transport (Engineering Throughput)
+- **Context**: The existing Python `for`-loop over bootstrap replicates and $\lambda$ candidate grids introduces unacceptable overhead, leading to severe computational bottlenecks for large cohorts.
+- **Decision**: Upgrade the mathematical engine to a tensor-based Batched Unbalanced Log-domain Sinkhorn solver. The pipeline must construct `[N, K]` tensors to execute UOT solves simultaneously across batch dimensions (patients, lambdas, or replicates).
+- **Constraints**: This is strictly an engineering optimization. The mathematical estimands, baseline calibration rules, and fail-fast behaviors must remain strictly equivalent to V1.6.
+
+## D006 — Hurdle + Measurement Error Joint Model (SLOTAR V2.0 Inference)
+- **Context**: Traditional Inverse Variance Weighting (IVW) on aggregated UQ estimates suffers from severe instability ("weight explosion") when local variance $\sigma_i^2$ approaches zero, and requires heuristic truncations that alter the inference estimand.
+- **Decision**: Adopt a Hurdle + Measurement Error Joint Model. The parameter estimate $\hat{\theta}_i$ and its bootstrap-derived uncertainty are ingested directly into the likelihood function as a measurement error component $e_i \sim \mathcal{N}(0, \phi^2 + s_i^2)$.
+- **Constraints (Locked)**:
+  1. **Log-scale Empirical Variance**: $s_i^2$ must be computed empirically on the log-transformed bootstrap replicates: $s_i^2 := \text{Var}(\log(\hat{\theta}_i^{(b)} + \delta))$, not via Delta method on infinitesimal point estimates.
+  2. **Numerical Stabilizer Bounds**: A strict numerical lower bound (`s2_lower_bound`) must be enforced on $s_i^2$ to prevent underestimation of total uncertainty.
+  3. **Identifiability Diagnostics**: The pipeline must evaluate the heterogeneity of the $\{s_i^2\}$ distribution before drawing inference claims.
+  4. **Strict Zero Stratification**: Only biologically justified "True Zeros" (e.g., compartment collapse) may enter the hurdle model's zero component. Engineering failures or pruning-induced zeros must be strictly logged as `NaN` (Missing Data).
+  5. **Bias-Variance Boundary**: This model absorbs sampling variance, not systemic sampling bias.
