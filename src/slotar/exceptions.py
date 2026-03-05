@@ -1,23 +1,24 @@
+"""
+Module: src.slotar.exceptions
+Architecture: Library Level
+Constraints:
+- Defines canonical string constants for data-level UOT status isolation.
+- Defines Exception classes for programmer-level constraint violations.
+- STRICTLY NO dynamic error generation or Enums that wrap values obscurely 
+  (must maintain NumPy object string array safety).
+"""
 from __future__ import annotations
 
-from dataclasses import dataclass
+# ---- Data-Level Degeneracy Status Codes ----
+# Used exclusively for the `status` array in batched operations.
+ERR_UOT_EMPTY_MASS_SOURCE: str = "ERR_UOT_EMPTY_MASS_SOURCE"
+ERR_UOT_EMPTY_MASS_TARGET: str = "ERR_UOT_EMPTY_MASS_TARGET"
+ERR_UOT_EMPTY_SUPPORT: str = "ERR_UOT_EMPTY_SUPPORT"
 
-
-@dataclass(frozen=True)
-class UOTErrorCode:
-    """Canonical error codes for fail-fast UOT input validation."""
-
-    code: str
-
-
-ERR_UOT_EMPTY_MASS_SOURCE = UOTErrorCode("ERR_UOT_EMPTY_MASS_PRE")
-ERR_UOT_EMPTY_MASS_TARGET = UOTErrorCode("ERR_UOT_EMPTY_MASS_POST")
-ERR_UOT_EMPTY_SUPPORT = UOTErrorCode("ERR_UOT_EMPTY_SUPPORT")
-
-
+# ---- Programmer-Level Exceptions ----
 class UOTInputError(ValueError):
-    """Fail-fast error for invalid UOT inputs (Plan B)."""
+    """Raised strictly for legacy single-item API or non-batchable programmer errors."""
+    pass
 
-    def __init__(self, code: UOTErrorCode, message: str) -> None:
-        super().__init__(f"{code.code}: {message}")
-        self.code = code
+# Note: DataContractError is defined in contracts.py to prevent circular imports,
+# but can be imported here if centralizing is preferred.
