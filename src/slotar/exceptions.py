@@ -14,6 +14,7 @@ from __future__ import annotations
 ERR_UOT_EMPTY_MASS_SOURCE: str = "ERR_UOT_EMPTY_MASS_SOURCE"
 ERR_UOT_EMPTY_MASS_TARGET: str = "ERR_UOT_EMPTY_MASS_TARGET"
 ERR_UOT_EMPTY_SUPPORT: str = "ERR_UOT_EMPTY_SUPPORT"
+ERR_UOT_NUMERICAL: str = "ERR_UOT_NUMERICAL"
 
 # ---- Programmer-Level Exceptions ----
 class UOTInputError(ValueError):

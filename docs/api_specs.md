@@ -1,7 +1,7 @@
 # API Specifications
 
-## Module 1: Representation (Prerequisite Inputs)
-*Note: This module provides utilities to convert spatial omics data into probability masses. The specific feature engineering (kNN, prototypes) is treated as an upstream prerequisite, not the core mathematical contribution of SLOTAR.*
+## Module 1: Representation and SLOTAR-Ready Input Construction
+*Note: This module defines the official benchmark-agnostic route from spatial single-cell or spot data to SLOTAR-ready objects. UOT is defined on ROI-/sample-level nonnegative mass distributions over a shared state/prototype axis, not on individual cells. The currently documented official example route uses `.obsm['spatial']` plus `.obs['cell_type']`, but the general contract is defined by the SLOTAR-ready objects below. Custom representation routes are allowed only if they terminate in the same validated SLOTAR-ready contract.*
 
 ### `build_community_features(adata: AnnData, k: int = 30) -> None`
 - **Inputs**: `adata` with `.obsm['spatial']` and `.obs['cell_type']`.
@@ -9,27 +9,52 @@
 - **Constraints**: Uses exact kNN. Computes density $\delta_c = k / (\pi \cdot r_k^2)$.
 
 ### `learn_global_prototypes(adata: AnnData, n_bal: int, K: int) -> None`
-- **Side Effects**: Computes balanced sample $\mathcal{U}_{bal}$, runs KMeans, assigns `proto_id` to all cells in `adata.obs`. Computes and stores $s_C$ in adata.uns['s_C'].
+- **Side Effects**: Computes balanced sample $\mathcal{U}_{bal}$, runs KMeans, assigns `proto_id` to all cells in `adata.obs`. Establishes the shared state/prototype axis used for downstream ROI-/sample-level aggregation and cost construction. Computes and stores $s_C$ in adata.uns['s_C'].
+
+### Official Route Pipeline (Ordered)
+1. **Validate official input route**: Apply high-level AnnData contract checks for the official route before representation construction.
+2. **Construct local community representation**: Build benchmark-agnostic local features from raw spatial single-cell or spot data.
+3. **Construct shared state space and official cost geometry as one coupled phase**: Learn the shared prototype/state axis of length `K` and construct the canonical `cost_matrix` on that same axis inside `src/slotar`; these two objects are kept geometrically consistent and are not documented as independently user-editable official steps.
+4. **Aggregate to ROI-/sample-level mass tables**: Convert each ROI/sample into a nonnegative mass vector over the shared axis with explicit `mass_mode` semantics. Supported documented modes are `count`, `density`, and `proportion`; density mode depends on ROI area metadata and preserves declared cells/mm² semantics where relevant.
+5. **Prepare a calibration-compatible path**: Keep the resulting shared-axis masses and scaling objects compatible with downstream lambda calibration in the library.
+- **Boundary**:
+  - The official route ends at SLOTAR-ready objects, not at paired `A/B` tensors.
+  - Pairing source/target items into batched `A` and `B` tensors remains task-level orchestration.
+  - A custom route may replace the raw-data-to-state-space mapping, aggregation, or compatible cost construction, but it must preserve the same shared-axis semantics and validation contract.
 
 ## Module 2: UOT Engine & Calibration (`slotar.uot`)
 
 ### `calibrate_lambdas(adata: AnnData, target_alpha: float = 0.05) -> Tuple[Dict, Dict]`
-- **Inputs**: Annotated `adata` with prototype counts per ROI.
+- **Inputs**: Annotated `adata` with prototype counts or equivalent ROI-/sample-level masses on the shared state axis, together with task-defined baseline-compatible grouping context.
 - **Outputs**: Returns two dictionaries `{group: lambda}` for density and shape levels.
-- **Constraints**: Uses only `timepoint == 0` ROIs.
+- **Constraints**: Uses baseline-compatible task context (for example, subset/group definitions) rather than running in isolation before task metadata is defined. Calibration precedes final batch assembly, but depends on task-provided context.
+
+### Calibration and Pairing Order
+1. **Task layer defines baseline subsets / grouping / pairing metadata**.
+2. **Library calibration uses that baseline-compatible task context** to obtain lambdas or a valid path to `lambda_pl`.
+3. **Task layer assembles final solver batches** as `A`, `B`, and `lambda_pl`.
+4. **Library batched UOT consumes the final `[N, K]` tensors**.
 
 ### `batched_uot_solve(A: np.ndarray, B: np.ndarray, lambda_pl: np.ndarray, kernels: list, solver_config: dict) -> Tuple[dict, np.ndarray]`
 - **Inputs**: 
-  - `A`, `B`: Non-negative mass tensors of shape `[N, K]` (where N is the batch dimension: patients, lambdas, or bootstrap replicates).
+  - `A`, `B`: Non-negative ROI-/sample-level mass tensors of shape `[N, K]` on the shared state/prototype axis (where `N` is the batch dimension: paired ROI/sample items, lambdas, or bootstrap replicates).
   - `lambda_pl`: Array of shape `[N]` containing the regularization parameter for each batch item.
   - `kernels`: Precomputed log-domain kernels for the $\varepsilon$-scaling schedule.
 - **Preconditions (Strict)**: 
-  - Handled via active masks. Programmer-level errors (shape/type mismatch, negative inputs) MUST raise DataContractError. Data-level degeneracies (empty mass/support) MUST NOT crash the batch, but instead return specific error codes in the status array.
+  - `validate_uot_inputs(...)` MUST run before solve logic.
+  - Programmer-level contract violations MUST raise `DataContractError` (shape mismatch, negative mass, NaN/Inf, invalid `lambda_pl` shape, invalid kernel shape).
+  - Per-item data degeneracies MUST NOT crash the batch and MUST be reported via per-item `status`.
 - **Outputs**: 
   - `metrics_dict`: Dictionary of batched tensors for `T`, `B_pos`, `D_pos`, `d_rel`, `b_rel`, `M`, `R`, `tau`.
-  - `status_array`: Array of shape `[N]` with values `"ok"`, `"ERR_UOT_EMPTY_MASS"`, or `"ERR_UOT_EMPTY_SUPPORT"`.
+  - `status_array`: Array of shape `[N]` with values:
+    - `"ok"`
+    - `"ERR_UOT_EMPTY_MASS_SOURCE"`
+    - `"ERR_UOT_EMPTY_MASS_TARGET"`
+    - `"ERR_UOT_EMPTY_SUPPORT"`
+    - `"ERR_UOT_NUMERICAL"`
 - **Constraints**: 
-  - Strictly no Python `for`-loops over the batch dimension $N$ during Sinkhorn iterations. Must use vectorized matrix operations and broadcasting.
+  - Batch dimension `[N]` MUST be preserved; failed items are not dropped inside library code.
+  - If `status_array[i] != "ok"`, all micro metrics for item `i` MUST be `NaN`.
 
 ## Module 3: Uncertainty Quantification (`slotar.uq`)
 
@@ -39,6 +64,20 @@
 - **Constraints**: 
   - MUST enforce frozen representations (Cannot recompute kNN or prototypes).
   - MUST compute the empirical measurement error strictly as $s_i^2 := \text{Var}(\log(\hat{\theta}_i^{(b)} + \delta))$, ensuring numerical bounds are applied per V2.0 contracts.
+
+## Module 3B: Core Inference Layer (Benchmark-Agnostic, `src/slotar`)
+
+### `run_core_inference(first_order_outputs: Mapping[str, Any], model_config: Mapping[str, Any]) -> CoreInferenceResult`
+- **Role**: Defines benchmark-agnostic method-level inference logic that is part of SLOTAR itself (when such inference is treated as core method definition).
+- **Inputs**:
+  - `first_order_outputs`: Canonical SLOTAR first-order outputs (metrics/events plus required audit fields).
+  - `model_config`: Explicitly passed inference hyperparameters from the task layer (no config parsing in library code).
+- **Outputs**:
+  - `CoreInferenceResult`: Standardized Python-side result contract containing in-memory estimates, uncertainty summaries, diagnostics, and run metadata.
+- **Constraints**:
+  - MUST remain benchmark-agnostic (no hard-coded cohort names, no benchmark-specific clinical assumptions, no task-specific formula construction).
+  - MUST NOT perform reporting/visualization behavior.
+  - This API section defines object-level contracts only; it does not define new file export formats.
 
 ### ST Modality Adaptation (Visium)
 - **Inputs**: ST embedding (e.g., PCA on HVGs).

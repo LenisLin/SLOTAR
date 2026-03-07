@@ -1,54 +1,99 @@
 from __future__ import annotations
 
-import numpy as np
+import sys
+from pathlib import Path
 
+import numpy as np
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from slotar.contracts import DataContractError
 from slotar.exceptions import (
     ERR_UOT_EMPTY_MASS_SOURCE,
+    ERR_UOT_EMPTY_MASS_TARGET,
     ERR_UOT_EMPTY_SUPPORT,
+    ERR_UOT_NUMERICAL,
 )
 from slotar.uot import UOTSolveConfig, batched_uot_solve, precompute_logKernels
 
 
-def test_batched_uot_solve_batch_isolation() -> None:
-    """
-    Test that the batched solver isolates bad items without crashing the entire batch.
-    Item 0: Valid data.
-    Item 1: Empty source mass (ERR_UOT_EMPTY_MASS_SOURCE).
-    Item 2: Will fail pruning due to extremely low mass vs n_min_proto (ERR_UOT_EMPTY_SUPPORT).
-    """
-    N, K = 3, 2
-    A = np.array([
-        [1.0, 1.0],             # Item 0: OK
-        [0.0, 0.0],             # Item 1: Empty mass
-        [1e-13, 1e-13]          # Item 2: Empty support after pruning
-    ])
-    B = np.array([
-        [1.0, 1.0],
-        [1.0, 1.0],
-        [1.0, 1.0]
-    ])
-    
-    lam_pl = np.array([1.0, 1.0, 1.0])
-    C = np.zeros((K, K))
-    
-    # Configure high n_min_proto to force Item 2 to drop its active support
+def test_batched_uot_solve_raises_on_shape_mismatch() -> None:
+    A = np.ones((2, 3), dtype=float)
+    B = np.ones((2, 2), dtype=float)
+    lam_pl = np.ones(2, dtype=float)
+    kernels = [np.zeros((3, 3), dtype=float)]
+    cfg = UOTSolveConfig(eps_schedule=[1.0])
+
+    with pytest.raises(DataContractError, match="shape mismatch"):
+        batched_uot_solve(A=A, B=B, lambda_pl=lam_pl, kernels=kernels, cfg=cfg)
+
+
+def test_batched_uot_solve_raises_on_negative_mass() -> None:
+    A = np.array([[1.0, -0.1]], dtype=float)
+    B = np.array([[1.0, 1.0]], dtype=float)
+    lam_pl = np.array([1.0], dtype=float)
+    kernels = [np.zeros((2, 2), dtype=float)]
+    cfg = UOTSolveConfig(eps_schedule=[1.0])
+
+    with pytest.raises(DataContractError, match="non-negative"):
+        batched_uot_solve(A=A, B=B, lambda_pl=lam_pl, kernels=kernels, cfg=cfg)
+
+
+def test_batched_uot_solve_raises_on_nan_input() -> None:
+    A = np.array([[1.0, np.nan]], dtype=float)
+    B = np.array([[1.0, 1.0]], dtype=float)
+    lam_pl = np.array([1.0], dtype=float)
+    kernels = [np.zeros((2, 2), dtype=float)]
+    cfg = UOTSolveConfig(eps_schedule=[1.0])
+
+    with pytest.raises(DataContractError, match="NaN/Inf"):
+        batched_uot_solve(A=A, B=B, lambda_pl=lam_pl, kernels=kernels, cfg=cfg)
+
+
+def test_batched_uot_solve_batch_isolation_for_item_degeneracies() -> None:
+    N, K = 5, 2
+    A = np.array(
+        [
+            [2.0, 1.0],      # ok
+            [0.0, 0.0],      # empty source
+            [1.0, 1.0],      # empty target
+            [1e-8, 1e-8],    # empty support after pruning
+            [1e308, 1e308],  # numerical failure (overflow in row reductions)
+        ],
+        dtype=float,
+    )
+    B = np.array(
+        [
+            [1.0, 2.0],      # ok
+            [1.0, 1.0],      # empty source
+            [0.0, 0.0],      # empty target
+            [1e-8, 1e-8],    # empty support after pruning
+            [1e308, 1e308],  # numerical failure
+        ],
+        dtype=float,
+    )
+    lam_pl = np.ones(N, dtype=float)
     cfg = UOTSolveConfig(eps_schedule=[1.0], n_min_proto=1e-5)
-    kernels = precompute_logKernels(C, cfg.eps_schedule)
+    kernels = precompute_logKernels(np.zeros((K, K), dtype=float), cfg.eps_schedule)
 
     metrics, status = batched_uot_solve(A=A, B=B, lambda_pl=lam_pl, kernels=kernels, cfg=cfg)
 
-    # Assert shape correctness
     assert status.shape == (N,)
-    assert metrics["D_pos"].shape == (N,)
-
-    # Assert strict state isolation
     assert status[0] == "ok"
     assert status[1] == ERR_UOT_EMPTY_MASS_SOURCE
-    # NOTE: Assuming batched_uot_solve implements the active mask pruning correctly
-    # and assigns ERR_UOT_EMPTY_SUPPORT to items failing the mask check.
-    assert status[2] == ERR_UOT_EMPTY_SUPPORT
+    assert status[2] == ERR_UOT_EMPTY_MASS_TARGET
+    assert status[3] == ERR_UOT_EMPTY_SUPPORT
+    assert status[4] == ERR_UOT_NUMERICAL
 
-    # Assert bypassed items return NaN for metrics
-    assert not np.isnan(metrics["D_pos"][0])
-    assert np.isnan(metrics["D_pos"][1])
-    assert np.isnan(metrics["D_pos"][2])
+    expected_metrics = ("T", "D_pos", "B_pos", "d_rel", "b_rel", "M", "R", "tau")
+    for name in expected_metrics:
+        assert metrics[name].shape == (N,)
+        assert np.isfinite(metrics[name][0])
+        assert np.isnan(metrics[name][1])
+        assert np.isnan(metrics[name][2])
+        assert np.isnan(metrics[name][3])
+        assert np.isnan(metrics[name][4])

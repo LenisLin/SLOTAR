@@ -13,6 +13,13 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
+from .exceptions import (
+    ERR_UOT_EMPTY_MASS_SOURCE,
+    ERR_UOT_EMPTY_MASS_TARGET,
+    ERR_UOT_EMPTY_SUPPORT,
+    ERR_UOT_NUMERICAL,
+)
+
 try:
     from anndata import AnnData
 except ImportError:  # pragma: no cover
@@ -32,6 +39,19 @@ REQUIRED_UNS_KEYS: tuple[str, ...] = ("roi_areas",)
 OPTIONAL_UNS_KEYS: tuple[str, ...] = ("scaler_params", CANONICAL_COST_SCALE_KEY, *COST_SCALE_ALIASES)
 
 MICRO_METRICS: tuple[str, ...] = ("T", "D_pos", "B_pos", "d_rel", "b_rel", "M", "R", "tau")
+CANONICAL_UOT_STATUSES: tuple[str, ...] = (
+    "ok",
+    ERR_UOT_EMPTY_MASS_SOURCE,
+    ERR_UOT_EMPTY_MASS_TARGET,
+    ERR_UOT_EMPTY_SUPPORT,
+    ERR_UOT_NUMERICAL,
+)
+CANONICAL_BYPASS_REASONS: tuple[str, ...] = (
+    "S0_zero",
+    "S1_zero",
+    "empty_support_after_prune",
+    "uot_numerical_failure",
+)
 
 class DataContractError(ValueError):
     """Raised when a declared SLOTAR programmer-level contract is violated."""
@@ -153,6 +173,20 @@ def validate_metrics_table(df: pd.DataFrame) -> None:
         raise DataContractError("metrics table: patient_group_id contains NA")
     if df["patient_group_id"].duplicated().any():
         raise DataContractError("metrics table: patient_group_id contains duplicates")
+
+    # Vocabulary contract for status and bypass audit fields
+    status_vals = df["uot_status"].astype("string")
+    bad_status = ~(status_vals.isna() | status_vals.isin(CANONICAL_UOT_STATUSES))
+    if bad_status.any():
+        invalid = sorted(status_vals[bad_status].dropna().unique().tolist())
+        raise DataContractError(f"metrics table: invalid uot_status values: {invalid}")
+
+    if "bypass_reason" in df.columns:
+        reason_vals = df["bypass_reason"].astype("string")
+        bad_reason = ~(reason_vals.isna() | reason_vals.isin(CANONICAL_BYPASS_REASONS))
+        if bad_reason.any():
+            invalid = sorted(reason_vals[bad_reason].dropna().unique().tolist())
+            raise DataContractError(f"metrics table: invalid bypass_reason values: {invalid}")
 
     # Bypass contract: if uot_status != ok => all micro metrics must be NaN (if present)
     if "uot_status" in df.columns:
